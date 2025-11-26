@@ -6,7 +6,7 @@ set -e
 
 # Configuration
 IMAGE_NAME="vss-engine-pixelml"
-TAG="2.4.0"
+TAG="2.4.0.1"
 REGISTRY_PATH="us-central1-docker.pkg.dev/gen-lang-client-0608717027/pixelml-us-central-1-registry"
 FULL_IMAGE_NAME="${REGISTRY_PATH}/${IMAGE_NAME}:${TAG}"
 
