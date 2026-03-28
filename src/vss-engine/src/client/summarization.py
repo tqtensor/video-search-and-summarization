@@ -125,7 +125,7 @@ async def add_assets(
     if not gr_video:
         return [
             gr.update(),
-        ] * 36
+        ] * 37
     else:
         url = appConfig["backend"] + "/files"
         session: aiohttp.ClientSession = appConfig["session"]
@@ -153,7 +153,7 @@ async def add_assets(
                             *[
                                 gr.update(),
                             ]
-                            * 34,
+                            * 35,
                         )
                     media_ids.append(resp_json["id"])
             logger.debug(f"multi-img; media_paths is {str(media_paths)}")
@@ -185,7 +185,7 @@ async def add_assets(
                         *[
                             gr.update(),
                         ]
-                        * 34,
+                        * 35,
                     )
                 media_ids.append(resp_json["id"])
 
@@ -201,7 +201,7 @@ async def add_assets(
             *[
                 gr.update(interactive=False),
             ]
-            * 31,
+            * 32,
             gr.update(value=None),
             gr.update(open=False),
         )
@@ -480,6 +480,7 @@ async def summarize(
     cv_pipeline_prompt="",
     enable_audio=False,
     enable_chat_history=True,
+    vlm_model="",
 ):
     logger.info(f"summarize. ip: {request.client.host}")
 
@@ -488,7 +489,7 @@ async def summarize(
             [
                 gr.update(),
             ]
-            * 33
+            * 34
         )
         return
     elif gr_video is not None and response_obj and media_ids:
@@ -502,7 +503,7 @@ async def summarize(
                     *[
                         gr.update(interactive=True),
                     ]
-                    * 32,
+                    * 33,
                 )
                 return
             model = resp_json["data"][0]["id"]
@@ -548,6 +549,8 @@ async def summarize(
         if cv_pipeline_prompt:
             req_json["cv_pipeline_prompt"] = cv_pipeline_prompt
         req_json["enable_audio"] = enable_audio
+        if vlm_model:
+            req_json["vlm_model"] = vlm_model
 
         parsed_alerts = []
         accumulated_responses = []
@@ -562,7 +565,7 @@ async def summarize(
                 *[
                     gr.update(),
                 ]
-                * 31,
+                * 32,
             )
         else:
             output_alerts = ""
@@ -604,7 +607,7 @@ async def summarize(
                     *[
                         gr.update(interactive=True),
                     ]
-                    * 32,
+                    * 33,
                 )
                 return
             while True:
@@ -650,7 +653,7 @@ async def summarize(
                         *[
                             gr.update(),
                         ]
-                        * 31,
+                        * 32,
                     )
 
         if len(accumulated_responses) == 1:
@@ -705,7 +708,7 @@ async def summarize(
             *[
                 gr.update(interactive=True),
             ]
-            * 30,
+            * 31,
         )
         return
     else:
@@ -713,7 +716,7 @@ async def summarize(
             [
                 gr.update(),
             ]
-            * 33
+            * 34
         )
         return
 
@@ -1245,6 +1248,15 @@ def build_summarization(args, app_cfg, logger_):
                 size="sm",
                 scale=1,
             )
+            vlm_model = gr.Textbox(
+                label="VLM Model Override",
+                interactive=True,
+                value="",
+                placeholder="e.g. gpt-5.1 (leave empty for default)",
+                max_lines=1,
+                scale=1,
+                elem_classes="white-background",
+            )
 
         with gr.Column(scale=3):
             with gr.Row(equal_height=True, elem_classes="align-right-row"):
@@ -1760,6 +1772,7 @@ def build_summarization(args, app_cfg, logger_):
             summarize_batch_size,
             rag_batch_size,
             rag_top_k,
+            vlm_model,
             timeline,
             timeline_accordion,
         ],
@@ -1803,6 +1816,7 @@ def build_summarization(args, app_cfg, logger_):
             cv_pipeline_prompt,
             enable_audio,
             chat_history_checkbox,
+            vlm_model,
         ],
         outputs=[
             chatbot,
@@ -1838,6 +1852,7 @@ def build_summarization(args, app_cfg, logger_):
             summarize_batch_size,
             rag_batch_size,
             rag_top_k,
+            vlm_model,
         ],
         show_progress=False,
     ).then(
@@ -1847,6 +1862,7 @@ def build_summarization(args, app_cfg, logger_):
             gr.update(interactive=chat_checkbox),
             gr.update(interactive=chat_checkbox),
             gr.update(interactive=chat_checkbox),
+            gr.update(interactive=True),
             gr.update(interactive=True),
             gr.update(interactive=True),
             gr.update(interactive=True),
@@ -1901,6 +1917,7 @@ def build_summarization(args, app_cfg, logger_):
             summarize_batch_size,
             rag_batch_size,
             rag_top_k,
+            vlm_model,
         ],
     )
 

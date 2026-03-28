@@ -906,7 +906,7 @@ class ViaServer:
 
             # Check if user has specified the model that is initialized
             model_info = self._stream_handler.get_models_info()
-            if query.model != model_info.id:
+            if query.model != model_info.id and not getattr(query, "vlm_model", None):
                 raise ViaException(f"No such model '{query.model}'", "BadParameters", 400)
 
             if query.api_type and query.api_type != model_info.api_type:
@@ -1379,7 +1379,7 @@ class ViaServer:
 
             # Check if user has specified the model that is initialized
             model_info = self._stream_handler.get_models_info()
-            if query.model != model_info.id:
+            if query.model != model_info.id and not getattr(query, "vlm_model", None):
                 raise ViaException(f"No such model '{query.model}'", "BadParameters", 400)
 
             if query.api_type and query.api_type != model_info.api_type:
@@ -1808,7 +1808,7 @@ class ViaServer:
 
             # Check if user has specified the model that is initialized
             model_info = self._stream_handler.get_models_info()
-            if query.model != model_info.id:
+            if query.model != model_info.id and not getattr(query, "vlm_model", None):
                 raise ViaException(f"No such model '{query.model}'", "BadParameters", 400)
 
             if query.api_type and query.api_type != model_info.api_type:

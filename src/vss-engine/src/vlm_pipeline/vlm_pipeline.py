@@ -21,6 +21,7 @@ import sys
 import tempfile
 import time
 from argparse import ArgumentParser
+from dataclasses import dataclass
 from enum import Enum
 from threading import Event, Lock, Thread
 from typing import Callable, Optional
@@ -78,17 +79,11 @@ class VlmModelInfo:
         self.api_type = ""
 
 
+@dataclass
 class VlmRequestParams:
     vlm_generation_config: Optional[dict] = None
     vlm_prompt: Optional[str] = None
-
-    def __eq__(self, other) -> bool:
-        if isinstance(other, VlmRequestParams):
-            return (
-                self.vlm_prompt == other.vlm_prompt
-                and self.vlm_generation_config == other.vlm_generation_config
-            )
-        return False
+    vlm_model: Optional[str] = None
 
 
 class DecoderProcess(ViaProcessBase):

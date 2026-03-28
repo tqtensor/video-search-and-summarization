@@ -1797,6 +1797,7 @@ class ViaStreamHandler:
         req_info.is_summarization = is_summarization
         req_info.vlm_request_params.vlm_prompt = query.prompt
         req_info.vlm_request_params.vlm_generation_config = vlm_generation_config
+        req_info.vlm_request_params.vlm_model = getattr(query, "vlm_model", None)
         req_info.assets = assets
         req_info.stream_id = req_info.assets[0].asset_id
         req_info.camera_id = req_info.assets[0].camera_id
@@ -2041,6 +2042,7 @@ class ViaStreamHandler:
         if query.system_prompt:
             vlm_generation_config["system_prompt"] = query.system_prompt
         req_info.vlm_request_params.vlm_generation_config = vlm_generation_config
+        req_info.vlm_request_params.vlm_model = getattr(query, "vlm_model", None)
 
         # Add the request to the request info map
         with self._lock:
@@ -2375,6 +2377,7 @@ class ViaStreamHandler:
         req_info.is_summarization = True
         req_info.vlm_request_params.vlm_prompt = query.prompt
         req_info.vlm_request_params.vlm_generation_config = vlm_generation_config
+        req_info.vlm_request_params.vlm_model = getattr(query, "vlm_model", None)
         req_info.is_live = True
         req_info.status = RequestInfo.Status.PROCESSING
         req_info.summary_duration = query.summary_duration
@@ -3465,6 +3468,11 @@ class ViaStreamHandler:
             self._update_llm_tool_param(
                 ca_rag_config, "summarization", "max_tokens", req_info.summarize_max_tokens
             )
+            # Override model name for summarization LLM if vlm_model is specified
+            if req_info.vlm_request_params.vlm_model:
+                self._update_llm_tool_param(
+                    ca_rag_config, "summarization", "model", req_info.vlm_request_params.vlm_model
+                )
         else:
             if "summarization" in ca_rag_config["context_manager"]["functions"]:
                 ca_rag_config["context_manager"]["functions"].remove("summarization")

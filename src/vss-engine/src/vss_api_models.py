@@ -501,6 +501,13 @@ class SummarizationQuery(ViaBaseModel):
         pattern=r"^[A-Za-z]*$",
         default="",
     )
+    vlm_model: str = Field(
+        default=None,
+        description="Override VLM model deployment name for this request (openai-compat mode only).",
+        examples=["gpt-5.1", "gpt-5.4"],
+        max_length=256,
+        pattern=FILE_NAME_PATTERN,
+    )
     response_format: ResponseFormat = Field(
         description="An object specifying the format that the model must output.",
         default=ResponseFormat(type=ResponseType.TEXT),
