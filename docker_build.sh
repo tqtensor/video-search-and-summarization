@@ -6,7 +6,7 @@ set -e
 
 # Configuration
 IMAGE_NAME="vss-engine-pixelml"
-TAG="2.4.0.16"
+TAG="2.4.0.17"
 REGISTRY_PATH="us-central1-docker.pkg.dev/arboreal-inn-444216-h1/pixelml-us-central-1-registry"
 FULL_IMAGE_NAME="${REGISTRY_PATH}/${IMAGE_NAME}:${TAG}"
 

@@ -940,12 +940,32 @@ class AsrProcess(ViaProcessBase):
             input_queue_lock=input_queue_lock,
         )
         self._args = args
+        self._backend = os.environ.get("VSS_ASR_BACKEND", "riva").lower()
         self._model_name = None
         self._server_uri = None
         self._riva_nim_server = True
         self._asr_config_file = "/tmp/via/riva_asr_grpc_conf.yaml"
         self._server_config = None
         self._asr_config = None
+        self._auth = None
+        self._asr_service = None
+        self._http_session = None
+
+        if self._backend == "openai":
+            self._openai_base_url = os.environ.get(
+                "VSS_ASR_OPENAI_BASE_URL", ""
+            ).rstrip("/")
+            self._openai_api_key = os.environ.get("VSS_ASR_OPENAI_API_KEY", "")
+            self._openai_model = os.environ.get(
+                "VSS_ASR_OPENAI_MODEL", "gpt-4o-transcribe-diarize"
+            )
+            self._openai_language = os.environ.get("VSS_ASR_LANGUAGE", "en")
+            if not self._openai_base_url:
+                raise Exception(
+                    "VSS_ASR_BACKEND=openai requires VSS_ASR_OPENAI_BASE_URL"
+                )
+            return
+
         try:
             with open(self._asr_config_file, mode="r", encoding="utf8") as c:
                 config_docs = yaml.safe_load_all(c)
@@ -963,10 +983,13 @@ class AsrProcess(ViaProcessBase):
         if self._asr_config is None or self._server_uri is None:
             raise Exception("RIVA ASR configuration is not valid.")
 
-        self._auth = None
-        self._asr_service = None
-
     def _initialize(self):
+        if self._backend == "openai":
+            import requests as _requests
+
+            self._http_session = _requests.Session()
+            return True
+
         # Create GRPC channel
         ssl_cert = self._server_config.get("ssl_cert", None)
         use_ssl = self._server_config.get("use_ssl", False)
@@ -1060,6 +1083,26 @@ class AsrProcess(ViaProcessBase):
                     bytes_list.append(frame["audio"].tobytes())
 
         audio_data = b"".join(bytes_list)
+
+        if self._backend == "openai":
+            transcript = self._transcribe_openai(audio_data)
+            nvtx.end_range(nvtx_asr_process_start)
+            logger.log(
+                LOG_STATUS_LEVEL,
+                "ASR response generated for (%s), %s",
+                chunk,
+                transcript,
+            )
+            return {
+                "chunk": chunk,
+                "request_params": request_params,
+                "audio_transcript": transcript,
+                "error": error_msg,
+                "asr_start_time": asr_start_time,
+                "asr_end_time": time.time(),
+                **kwargs,
+            }
+
         if len(audio_data) == 0:
             asr_response = None
         else:
@@ -1114,6 +1157,52 @@ class AsrProcess(ViaProcessBase):
                 asr_start_time,
                 nvtx_asr_process_start,
             )
+
+    def _transcribe_openai(self, audio_data: bytes):
+        if not audio_data:
+            return None
+
+        import io
+        import wave
+
+        buf = io.BytesIO()
+        with wave.open(buf, "wb") as wav:
+            wav.setnchannels(1)
+            wav.setsampwidth(2)
+            wav.setframerate(16000)
+            wav.writeframes(audio_data)
+        buf.seek(0)
+
+        url = f"{self._openai_base_url}/v1/audio/transcriptions"
+        files = {"file": ("chunk.wav", buf, "audio/wav")}
+        data = {
+            "model": self._openai_model,
+            "language": self._openai_language,
+            "response_format": "json",
+        }
+        headers = {}
+        if self._openai_api_key:
+            headers["Authorization"] = f"Bearer {self._openai_api_key}"
+
+        try:
+            response = self._http_session.post(
+                url, files=files, data=data, headers=headers, timeout=120
+            )
+            response.raise_for_status()
+            payload = response.json()
+        except Exception as exc:
+            logger.warning("OpenAI ASR request failed: %s", exc)
+            return None
+
+        text = payload.get("text")
+        if text:
+            return text
+        segments = payload.get("segments") or []
+        if segments:
+            return " ".join(
+                str(seg.get("text", "")).strip() for seg in segments if seg.get("text")
+            ).strip() or None
+        return None
 
 
 class VlmChunkResponse:

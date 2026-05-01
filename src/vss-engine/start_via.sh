@@ -336,7 +336,7 @@ start_processes() {
         fi
     fi
 
-    if [ "$ENABLE_AUDIO" = true ]; then
+    if [ "$ENABLE_AUDIO" = true ] && [ "${VSS_ASR_BACKEND:-riva}" != "openai" ]; then
         configure_riva_asr_service
     fi
 
